@@ -28,7 +28,7 @@ jobs:
           python playwright_script.py
 
       - name: Upload results file
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dados-fiesta
           path: registos_fiesta.txt
