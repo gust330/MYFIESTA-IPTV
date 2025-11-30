@@ -18,11 +18,12 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install dependencies
+      - name: Install dependencies and Playwright browsers
         run: |
           sudo apt-get update -y
           pip install -r requirements.txt
-          python -m playwright install --with-deps chromium
+          # run playwright install with sudo so --with-deps can install system packages
+          sudo python -m playwright install --with-deps chromium
 
       - name: Run automation script
         run: |
@@ -33,3 +34,4 @@ jobs:
         with:
           name: dados-fiesta
           path: registos_fiesta.txt
+          if-no-files-found: warn
