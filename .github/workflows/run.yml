@@ -1,9 +1,9 @@
 name: Run Playwright Fiesta Automation
 
 on:
-  workflow_dispatch:      # Permite correr manualmente
+  workflow_dispatch:
   schedule:
-    - cron: "0 * * * *"   # Corre automaticamente de hora a hora (podes ajustar)
+    - cron: "0 * * * *"
 
 jobs:
   run-automation:
@@ -20,6 +20,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          sudo apt-get update -y
           pip install -r requirements.txt
           python -m playwright install --with-deps chromium
 
