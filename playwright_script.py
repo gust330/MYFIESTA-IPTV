@@ -16,7 +16,7 @@ RAPIDAPI_HOST = "gmailnator.p.rapidapi.com"
 
 
 def guardar_resultados(email, code, username, password):
-    with open(OUTPUT_FILE, "a", encoding="utf-8") as f:
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         f.write(f"Email: {email}\n")
         f.write(f"Código: {code}\n")
         f.write(f"Username: {username}\n")
