@@ -7,7 +7,7 @@ from playwright.sync_api import sync_playwright
 OUTPUT_FILE = "registos_fiesta.txt"
 
 # Configuration
-MANUAL_MODE = False  # Set to True to manually enter email, False to use API
+MANUAL_MODE = True  # Set to True to manually enter email, False to use API
 
 
 # API Configuration
@@ -16,6 +16,7 @@ RAPIDAPI_HOST = "gmailnator.p.rapidapi.com"
 
 
 def guardar_resultados(email, code, username, password):
+    # Save to text file (original)
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         f.write(f"Email: {email}\n")
         f.write(f"Código: {code}\n")
@@ -23,6 +24,25 @@ def guardar_resultados(email, code, username, password):
         f.write(f"Password: {password}\n")
         f.write("URL: http://trial.ifiesta.net\n")
         f.write("-" * 50 + "\n\n")
+    
+    # Save to JSON for the server (new)
+    try:
+        from datetime import datetime
+        import json
+        
+        data = {
+            'email': email,
+            'username': username,
+            'password': password,
+            'url': 'http://trial.ifiesta.net',
+            'last_update': datetime.now().isoformat()
+        }
+        
+        with open("credentials.json", "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        print("Credentials also saved to credentials.json for the server.")
+    except Exception as e:
+        print(f"Error saving JSON credentials: {e}")
 
 
 def gerar_email():

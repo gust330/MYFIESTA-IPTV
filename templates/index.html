@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyFiesta IPTV Player</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://vjs.zencdn.net/8.6.1/video-js.css" rel="stylesheet" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .status-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 12px;
+            transition: transform 0.3s ease, background 0.3s ease;
+        }
+
+        .status-item:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .status-item h3 {
+            font-size: 0.9rem;
+            font-weight: 500;
+            opacity: 0.8;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-item p {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-active {
+            background: #10b981;
+            color: white;
+        }
+
+        .status-refreshing {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .status-error {
+            background: #ef4444;
+            color: white;
+        }
+
+        .status-initializing {
+            background: #6366f1;
+            color: white;
+        }
+
+        .video-container {
+            margin-bottom: 30px;
+        }
+
+        .video-js {
+            width: 100%;
+            height: 500px;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            color: white;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .credentials-box {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            margin-top: 20px;
+        }
+
+        .credentials-box p {
+            margin: 8px 0;
+            word-break: break-all;
+        }
+
+        .credentials-box strong {
+            color: #fbbf24;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .video-js {
+                height: 300px;
+            }
+
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 MyFiesta IPTV</h1>
+            <p>Your automated IPTV streaming solution</p>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">📊 System Status</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <h3>Server Status</h3>
+                    <p><span id="status-badge" class="status-badge status-initializing">Loading...</span></p>
+                </div>
+                <div class="status-item">
+                    <h3>Last Refresh</h3>
+                    <p id="last-refresh">Loading...</p>
+                </div>
+                <div class="status-item">
+                    <h3>Next Refresh</h3>
+                    <p id="next-refresh">Loading...</p>
+                </div>
+                <div class="status-item">
+                    <h3>Credentials</h3>
+                    <p id="credentials-status">Loading...</p>
+                </div>
+            </div>
+
+            <div id="error-container"></div>
+
+            <div class="button-group" style="margin-top: 20px;">
+                <button class="btn btn-primary" onclick="refreshCredentials()">🔄 Refresh Now</button>
+                <button class="btn btn-secondary" onclick="updateStatus()">📡 Update Status</button>
+                <a href="/playlist.m3u" class="btn btn-secondary" download>📥 Download Playlist</a>
+                <button class="btn btn-secondary" onclick="toggleCredentials()">🔑 Show Credentials</button>
+            </div>
+
+            <div id="credentials-display" style="display: none;" class="credentials-box">
+                <h3 style="margin-bottom: 15px;">Current Credentials</h3>
+                <p><strong>Username:</strong> <span id="cred-username">-</span></p>
+                <p><strong>Password:</strong> <span id="cred-password">-</span></p>
+                <p><strong>URL:</strong> <span id="cred-url">-</span></p>
+                <p><strong>Last Update:</strong> <span id="cred-update">-</span></p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">📺 Stream Player</h2>
+            <p style="margin-bottom: 20px; opacity: 0.9;">
+                Use the playlist URL below in your favorite IPTV player app (VLC, IPTV Smarters, etc.)
+            </p>
+            
+            <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                <p style="margin-bottom: 10px;"><strong>Playlist URL:</strong></p>
+                <input type="text" id="playlist-url" readonly 
+                       style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; font-family: monospace;"
+                       value="">
+                <button class="btn btn-secondary" style="margin-top: 10px;" onclick="copyPlaylistUrl()">📋 Copy URL</button>
+            </div>
+
+            <div class="video-container">
+                <video id="my-video" class="video-js vjs-default-skin" controls preload="auto">
+                    <p class="vjs-no-js">
+                        To view this video please enable JavaScript, and consider upgrading to a web browser that supports HTML5 video
+                    </p>
+                </video>
+            </div>
+
+            <p style="opacity: 0.8; font-size: 0.9rem;">
+                💡 <strong>Tip:</strong> You can use this playlist URL on any device. Just copy it and paste it into your IPTV player app.
+            </p>
+        </div>
+    </div>
+
+    <script src="https://vjs.zencdn.net/8.6.1/video.min.js"></script>
+    <script>
+        let player;
+        let credentialsVisible = false;
+
+        // Initialize video player
+        function initPlayer() {
+            if (player) {
+                player.dispose();
+            }
+
+            player = videojs('my-video', {
+                controls: true,
+                autoplay: false,
+                preload: 'auto',
+                fluid: true,
+                responsive: true
+            });
+        }
+
+        // Update status from server
+        async function updateStatus() {
+            try {
+                const response = await fetch('/status');
+                const data = await response.json();
+
+                // Update status badge
+                const statusBadge = document.getElementById('status-badge');
+                statusBadge.textContent = data.status;
+                statusBadge.className = 'status-badge status-' + data.status;
+
+                // Update timestamps
+                document.getElementById('last-refresh').textContent = 
+                    data.last_refresh ? new Date(data.last_refresh).toLocaleString() : 'Never';
+                
+                document.getElementById('next-refresh').textContent = 
+                    data.next_refresh ? new Date(data.next_refresh).toLocaleString() : 'Not scheduled';
+
+                // Update credentials status
+                document.getElementById('credentials-status').textContent = 
+                    data.credentials_available ? '✅ Available' : '❌ Not Available';
+
+                // Show error if any
+                const errorContainer = document.getElementById('error-container');
+                if (data.error) {
+                    errorContainer.innerHTML = `
+                        <div class="error-message">
+                            <strong>⚠️ Error:</strong> ${data.error}
+                        </div>
+                    `;
+                } else {
+                    errorContainer.innerHTML = '';
+                }
+
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        }
+
+        // Refresh credentials manually
+        async function refreshCredentials() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span> Refreshing...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/refresh');
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('✅ Credentials refreshed successfully!');
+                    updateStatus();
+                } else {
+                    alert('❌ Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('❌ Error refreshing credentials: ' + error);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // Toggle credentials display
+        async function toggleCredentials() {
+            const display = document.getElementById('credentials-display');
+            
+            if (!credentialsVisible) {
+                try {
+                    const response = await fetch('/credentials');
+                    const data = await response.json();
+
+                    if (data.error) {
+                        alert('❌ ' + data.error);
+                        return;
+                    }
+
+                    document.getElementById('cred-username').textContent = data.username;
+                    document.getElementById('cred-password').textContent = data.password;
+                    document.getElementById('cred-url').textContent = data.url;
+                    document.getElementById('cred-update').textContent = 
+                        data.last_update ? new Date(data.last_update).toLocaleString() : 'Unknown';
+
+                    display.style.display = 'block';
+                    credentialsVisible = true;
+                } catch (error) {
+                    alert('❌ Error fetching credentials: ' + error);
+                }
+            } else {
+                display.style.display = 'none';
+                credentialsVisible = false;
+            }
+        }
+
+        // Copy playlist URL
+        function copyPlaylistUrl() {
+            const input = document.getElementById('playlist-url');
+            input.select();
+            document.execCommand('copy');
+            
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '✅ Copied!';
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 2000);
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Set playlist URL
+            const playlistUrl = window.location.origin + '/playlist.m3u';
+            document.getElementById('playlist-url').value = playlistUrl;
+
+            // Initialize player
+            initPlayer();
+
+            // Update status
+            updateStatus();
+
+            // Auto-update status every 30 seconds
+            setInterval(updateStatus, 30000);
+        });
+    </script>
+</body>
+</html>
