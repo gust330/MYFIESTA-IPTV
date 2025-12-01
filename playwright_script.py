@@ -7,7 +7,7 @@ from playwright.sync_api import sync_playwright
 OUTPUT_FILE = "registos_fiesta.txt"
 
 # Configuration
-MANUAL_MODE = True  # Set to True to manually enter email, False to use API
+MANUAL_MODE = False  # Set to True to manually enter email, False to use API
 
 
 # API Configuration
