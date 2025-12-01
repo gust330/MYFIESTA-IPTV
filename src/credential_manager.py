@@ -2,6 +2,7 @@ import time
 import http.client
 import json
 import re
+import os
 from playwright.sync_api import sync_playwright
 from datetime import datetime
 
@@ -15,6 +16,7 @@ class CredentialManager:
         self.rapidapi_host = "gmailnator.p.rapidapi.com"
         self.credentials = None
         self.last_update = None
+        self.used = False
         
     def generate_email(self):
         """Generate email using Emailnator API"""
@@ -293,11 +295,42 @@ class CredentialManager:
         
         return username, password
     
+    def delete_old_credentials(self, filepath=None):
+        """Delete old credentials file before fetching new ones"""
+        if filepath is None:
+            import os
+            BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            filepath = os.path.join(BASE_DIR, "data", "credentials.json")
+        """Delete old credentials file before fetching new ones"""
+        if os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+                print(f"Deleted old credentials file: {filepath}")
+            except Exception as e:
+                print(f"Warning: Could not delete old credentials file: {e}")
+    
+    def mark_as_used(self):
+        """Mark current credentials as used (one-time use)"""
+        self.used = True
+        if self.credentials:
+            self.credentials['used'] = True
+            print("Credentials marked as USED (one-time use)")
+    
+    def is_used(self):
+        """Check if credentials have been used"""
+        return self.used or (self.credentials and self.credentials.get('used', False))
+    
     def fetch_credentials(self):
-        """Main method to fetch new credentials"""
+        """Main method to fetch new credentials - always deletes old ones first"""
         print("\n" + "="*60)
         print("FETCHING NEW CREDENTIALS")
         print("="*60)
+        
+        # Always delete old credentials before fetching new ones
+        self.delete_old_credentials()
+        self.credentials = None
+        self.last_update = None
+        self.used = False
         
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
@@ -322,14 +355,16 @@ class CredentialManager:
             
             browser.close()
         
-        # Store credentials
+        # Store credentials (marked as unused initially)
         self.credentials = {
             'email': email,
             'username': username,
             'password': password,
-            'url': 'http://trial.ifiesta.net'
+            'url': 'http://trial.ifiesta.net',
+            'used': False
         }
         self.last_update = datetime.now()
+        self.used = False
         
         print("\n" + "="*60)
         print("CREDENTIALS FETCHED SUCCESSFULLY")
@@ -344,9 +379,14 @@ class CredentialManager:
         return self.credentials
     
     def generate_m3u_playlist(self):
-        """Generate M3U playlist from current credentials"""
+        """Generate M3U playlist from current credentials (marks them as used)"""
         if not self.credentials:
             raise Exception("No credentials available. Call fetch_credentials() first.")
+        
+        # Mark credentials as used when generating playlist (one-time use)
+        if not self.is_used():
+            self.mark_as_used()
+            self.save_credentials()  # Save the used flag
         
         username = self.credentials['username']
         password = self.credentials['password']
@@ -356,14 +396,36 @@ class CredentialManager:
         # The URL format is: http://server:port/get.php?username=XXX&password=YYY&type=m3u_plus&output=ts
         playlist_url = f"{url}/get.php?username={username}&password={password}&type=m3u_plus&output=ts"
         
-        m3u_content = f"""#EXTM3U
+        # Try to fetch the actual M3U content from the API
+        try:
+            import urllib.request
+            import urllib.error
+            
+            print(f"Fetching full channel list from: {playlist_url}")
+            req = urllib.request.Request(playlist_url)
+            req.add_header('User-Agent', 'MyFiesta-IPTV/1.0')
+            
+            with urllib.request.urlopen(req, timeout=30) as response:
+                m3u_content = response.read().decode('utf-8')
+                print(f"✅ Fetched {len(m3u_content)} bytes of playlist data")
+                return m3u_content
+        except Exception as e:
+            print(f"⚠️  Could not fetch full playlist: {e}")
+            print("   Returning direct URL instead")
+            # Fallback to direct URL
+            m3u_content = f"""#EXTM3U
 #EXTINF:-1,MyFiesta IPTV Stream
 {playlist_url}
 """
-        
-        return m3u_content
+            return m3u_content
     
-    def save_credentials(self, filepath="credentials.json"):
+    def save_credentials(self, filepath=None):
+        """Save credentials to JSON file"""
+        if filepath is None:
+            import os
+            BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            filepath = os.path.join(BASE_DIR, "data", "credentials.json")
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
         """Save credentials to JSON file"""
         if not self.credentials:
             raise Exception("No credentials to save")
@@ -378,26 +440,67 @@ class CredentialManager:
         
         print(f"Credentials saved to {filepath}")
     
-    def load_credentials(self, filepath="credentials.json"):
+    def load_credentials(self, filepath=None):
+        """Load credentials from JSON file"""
+        if filepath is None:
+            import os
+            BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            filepath = os.path.join(BASE_DIR, "data", "credentials.json")
         """Load credentials from JSON file"""
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
+            # Validate required fields
+            required_fields = ['email', 'username', 'password', 'url']
+            for field in required_fields:
+                if field not in data:
+                    print(f"Error: Missing required field '{field}' in {filepath}")
+                    return None
+            
             self.credentials = {
                 'email': data['email'],
                 'username': data['username'],
                 'password': data['password'],
-                'url': data['url']
+                'url': data['url'],
+                'used': data.get('used', False)
             }
             
             if data.get('last_update'):
-                self.last_update = datetime.fromisoformat(data['last_update'])
+                try:
+                    self.last_update = datetime.fromisoformat(data['last_update'])
+                except (ValueError, AttributeError) as e:
+                    print(f"Warning: Could not parse last_update timestamp: {e}")
+                    self.last_update = datetime.now()
+            else:
+                self.last_update = datetime.now()
+            
+            self.used = data.get('used', False)
+            
+            # If credentials are already used, we still return them but warn
+            # The server will handle fetching new ones if needed
+            if self.used:
+                print(f"⚠️  Warning: Credentials in {filepath} are marked as USED.")
+                print(f"   They may still work, but you might want to fetch new ones.")
+                # Don't delete - let the user decide
+                # return None
             
             print(f"Credentials loaded from {filepath}")
+            print(f"  Username: {self.credentials['username']}")
+            print(f"  Password: {self.credentials['password']}")
+            print(f"  URL: {self.credentials['url']}")
+            print(f"  Used: {self.used}")
             return self.credentials
         except FileNotFoundError:
             print(f"No credentials file found at {filepath}")
+            return None
+        except json.JSONDecodeError as e:
+            print(f"Error: Invalid JSON in {filepath}: {e}")
+            return None
+        except Exception as e:
+            print(f"Error loading credentials from {filepath}: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
 

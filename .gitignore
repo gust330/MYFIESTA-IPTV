@@ -1,4 +1,33 @@
-registos_fiesta.txt
+# Python
 __pycache__/
-*.pyc
-credentials.json
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Data files
+data/credentials.json
+data/*.json
+
+# Screenshots
+*.png
+screenshot_*.png
+
+# Logs
+*.log
+registos_fiesta.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
