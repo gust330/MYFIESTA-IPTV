@@ -253,10 +253,10 @@ def playlist():
 
 @app.route('/stream')
 def proxy_stream():
-    """Proxy stream to handle CORS issues"""
+    """Proxy stream to handle CORS issues and authentication"""
     try:
         import urllib.request
-        from flask import request
+        from flask import request, stream_with_context
         
         stream_url = request.args.get('url')
         if not stream_url:
@@ -266,20 +266,52 @@ def proxy_stream():
         if not credential_manager.credentials:
             return Response("No credentials", status=503)
         
-        # Fetch and proxy the stream
-        req = urllib.request.Request(stream_url)
-        req.add_header('User-Agent', 'MyFiesta-IPTV/1.0')
-        
-        with urllib.request.urlopen(req, timeout=10) as response:
-            return Response(
-                response.read(),
-                mimetype=response.headers.get('Content-Type', 'video/mp2t'),
-                headers={
-                    'Access-Control-Allow-Origin': '*',
-                    'Cache-Control': 'no-cache'
-                }
-            )
+        # For HLS streams (.m3u8), we need to proxy the manifest and segments
+        if stream_url.endswith('.m3u8') or '.m3u8' in stream_url:
+            # Fetch the HLS manifest
+            req = urllib.request.Request(stream_url)
+            req.add_header('User-Agent', 'MyFiesta-IPTV/1.0')
+            req.add_header('Accept', 'application/vnd.apple.mpegurl, application/x-mpegURL, text/plain')
+            
+            try:
+                with urllib.request.urlopen(req, timeout=15) as response:
+                    content = response.read().decode('utf-8')
+                    # Return as HLS manifest
+                    return Response(
+                        content,
+                        mimetype='application/vnd.apple.mpegurl',
+                        headers={
+                            'Access-Control-Allow-Origin': '*',
+                            'Cache-Control': 'no-cache',
+                            'Content-Type': 'application/vnd.apple.mpegurl'
+                        }
+                    )
+            except Exception as e:
+                print(f"Error proxying HLS manifest: {e}")
+                return Response(f"Stream error: {str(e)}", status=500)
+        else:
+            # For direct stream URLs, try to fetch
+            req = urllib.request.Request(stream_url)
+            req.add_header('User-Agent', 'MyFiesta-IPTV/1.0')
+            req.add_header('Accept', '*/*')
+            
+            try:
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    return Response(
+                        response.read(),
+                        mimetype=response.headers.get('Content-Type', 'video/mp2t'),
+                        headers={
+                            'Access-Control-Allow-Origin': '*',
+                            'Cache-Control': 'no-cache'
+                        }
+                    )
+            except Exception as e:
+                print(f"Error proxying stream: {e}")
+                return Response(f"Stream error: {str(e)}", status=500)
+                
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return Response(f"Stream error: {str(e)}", status=500)
 
 
@@ -301,7 +333,8 @@ def get_channels():
         password = credential_manager.credentials['password']
         url = credential_manager.credentials['url']
         
-        playlist_url = f"{url}/get.php?username={username}&password={password}&type=m3u_plus&output=ts"
+        # Use m3u8 output for HLS streams (better browser compatibility)
+        playlist_url = f"{url}/get.php?username={username}&password={password}&type=m3u_plus&output=m3u8"
         
         # Fetch the M3U playlist
         req = urllib.request.Request(playlist_url)

@@ -393,8 +393,9 @@ class CredentialManager:
         url = self.credentials['url']
         
         # M3U playlist format for Xtream Codes
-        # The URL format is: http://server:port/get.php?username=XXX&password=YYY&type=m3u_plus&output=ts
-        playlist_url = f"{url}/get.php?username={username}&password={password}&type=m3u_plus&output=ts"
+        # Use m3u8 output for HLS streams (better browser compatibility)
+        # The URL format is: http://server:port/get.php?username=XXX&password=YYY&type=m3u_plus&output=m3u8
+        playlist_url = f"{url}/get.php?username={username}&password={password}&type=m3u_plus&output=m3u8"
         
         # Try to fetch the actual M3U content from the API
         try:
