@@ -1,0 +1,8 @@
+{
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "email": "omega.pen.biz@gmail.com",
+    "password": "oftg jget ezaz ervz",
+    "to_email": "gustvo.mt@gmail.com",
+    "use_tls": true
+}

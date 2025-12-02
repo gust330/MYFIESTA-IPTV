@@ -1,4 +1,2 @@
 playwright==1.43.0
-pytest-playwright
-flask==3.0.0
-apscheduler==3.10.4
+schedule>=1.2.0

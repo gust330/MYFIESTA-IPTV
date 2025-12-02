@@ -17,7 +17,7 @@ CREDENTIALS_FILE = os.path.join(BASE_DIR, "data", "credentials.json")
 os.makedirs(os.path.dirname(CREDENTIALS_FILE), exist_ok=True)
 
 # Configuration
-MANUAL_MODE = True  # Set to True to manually enter email, False to use API
+MANUAL_MODE = False  # Set to True to manually enter email, False to use API (for automation)
 
 
 # API Configuration
@@ -95,50 +95,74 @@ def guardar_resultados(email, code, username, password):
 
 
 def gerar_email():
-    """Generate email using Emailnator API"""
-    conn = http.client.HTTPSConnection(RAPIDAPI_HOST)
+    """Generate email using Emailnator API - ensures @gmail.com domain"""
+    max_attempts = 10  # Maximum attempts to get a @gmail.com email
     
-    payload = json.dumps({"options": [1, 2, 3]})
+    for attempt in range(max_attempts):
+        try:
+            conn = http.client.HTTPSConnection(RAPIDAPI_HOST)
+            
+            payload = json.dumps({"options": [1, 2, 3]})
+            
+            headers = {
+                'x-rapidapi-key': RAPIDAPI_KEY,
+                'x-rapidapi-host': RAPIDAPI_HOST,
+                'Content-Type': "application/json"
+            }
+            
+            conn.request("POST", "/generate-email", payload, headers)
+            res = conn.getresponse()
+            data = res.read()
+            
+            response = json.loads(data.decode("utf-8"))
+            
+            # Try to extract email from response
+            email = None
+            if isinstance(response.get("email"), list):
+                email = response.get("email", [None])[0]
+            elif isinstance(response.get("email"), str):
+                email = response.get("email")
+            
+            if not email:
+                print(f"⚠️  Tentativa {attempt + 1}: Falha ao extrair email da resposta")
+                conn.close()
+                if attempt < max_attempts - 1:
+                    time.sleep(1)  # Wait before retry
+                    continue
+                else:
+                    raise Exception(f"Failed to generate email. API Response: {response}")
+            
+            # Check if email is @gmail.com
+            if email.lower().endswith("@gmail.com"):
+                print(f"✅ EMAIL GERADO (tentativa {attempt + 1}): {email}")
+                conn.close()
+                return email
+            else:
+                print(f"⚠️  Tentativa {attempt + 1}: Email gerado não é @gmail.com: {email}")
+                print(f"   Gerando novo email...")
+                conn.close()
+                time.sleep(1)  # Wait before retry
+                
+        except Exception as e:
+            print(f"⚠️  Erro na tentativa {attempt + 1}: {e}")
+            try:
+                conn.close()
+            except:
+                pass
+            if attempt < max_attempts - 1:
+                time.sleep(1)
+                continue
+            else:
+                raise
     
-    headers = {
-        'x-rapidapi-key': RAPIDAPI_KEY,
-        'x-rapidapi-host': RAPIDAPI_HOST,
-        'Content-Type': "application/json"
-    }
-    
-    conn.request("POST", "/generate-email", payload, headers)
-    res = conn.getresponse()
-    data = res.read()
-    
-    response = json.loads(data.decode("utf-8"))
-    print("DEBUG - API Response:", response)
-    
-    # Try to extract email from response
-    email = None
-    if isinstance(response.get("email"), list):
-        email = response.get("email", [None])[0]
-    elif isinstance(response.get("email"), str):
-        email = response.get("email")
-    
-    if not email:
-        raise Exception(f"Failed to generate email. API Response: {response}")
-    
-    print("EMAIL GERADO:", email)
-    conn.close()
-    return email
+    # If we get here, we exhausted all attempts
+    raise Exception(f"Failed to generate @gmail.com email after {max_attempts} attempts")
 
 
 def obter_codigo(email):
     """Fetch verification code from email using Emailnator API"""
-    conn = http.client.HTTPSConnection(RAPIDAPI_HOST)
-    
-    headers = {
-        'x-rapidapi-key': RAPIDAPI_KEY,
-        'x-rapidapi-host': RAPIDAPI_HOST,
-        'Content-Type': "application/json"
-    }
-    
-    print("À espera do código...")
+    print("À espera do código de verificação...")
+    print(f"📧 Verificando inbox: {email}")
     
     # Poll inbox until we get a message
     message_id = None
@@ -146,47 +170,187 @@ def obter_codigo(email):
     attempt = 0
     
     while attempt < max_attempts:
-        payload = json.dumps({"email": email, "limit": 10})
-        
-        conn.request("POST", "/inbox", payload, headers)
-        res = conn.getresponse()
-        data = res.read()
-        
-        inbox_response = json.loads(data.decode("utf-8"))
-        
-        # Check if we have messages
-        if inbox_response and len(inbox_response) > 0:
-            message_id = inbox_response[0].get("messageID")
-            if message_id:
-                print(f"Mensagem recebida! ID: {message_id}")
-                break
-        
-        print(f"Tentativa {attempt + 1}/{max_attempts}...")
-        time.sleep(3)
-        attempt += 1
+        try:
+            # Recriar conexão a cada tentativa para evitar problemas de conexão
+            conn = http.client.HTTPSConnection(RAPIDAPI_HOST)
+            
+            headers = {
+                'x-rapidapi-key': RAPIDAPI_KEY,
+                'x-rapidapi-host': RAPIDAPI_HOST,
+                'Content-Type': "application/json"
+            }
+            
+            # Buscar mensagens na inbox
+            payload = json.dumps({"email": email, "limit": 20})  # Aumentar limite para pegar mais mensagens
+            
+            conn.request("POST", "/inbox", payload, headers)
+            res = conn.getresponse()
+            data = res.read()
+            
+            # Verificar status da resposta
+            if res.status != 200:
+                print(f"⚠️  Status HTTP {res.status}: {data.decode('utf-8')[:100]}")
+                conn.close()
+                time.sleep(3)
+                attempt += 1
+                continue
+            
+            inbox_response = json.loads(data.decode("utf-8"))
+            conn.close()
+            
+            # Debug: mostrar estrutura da resposta
+            if attempt == 0:
+                print(f"📋 Estrutura da resposta: {type(inbox_response)}")
+                if isinstance(inbox_response, dict):
+                    print(f"   Chaves: {list(inbox_response.keys())}")
+                elif isinstance(inbox_response, list):
+                    print(f"   Número de mensagens: {len(inbox_response)}")
+            
+            # Verificar se temos mensagens
+            messages = []
+            if isinstance(inbox_response, list):
+                messages = inbox_response
+            elif isinstance(inbox_response, dict):
+                # Pode estar em diferentes chaves
+                if 'messages' in inbox_response:
+                    messages = inbox_response['messages']
+                elif 'data' in inbox_response:
+                    messages = inbox_response['data']
+                elif 'inbox' in inbox_response:
+                    messages = inbox_response['inbox']
+                else:
+                    # Tentar usar o primeiro valor se for uma lista
+                    for key, value in inbox_response.items():
+                        if isinstance(value, list):
+                            messages = value
+                            break
+            
+            # Procurar mensagem de verificação
+            if messages and len(messages) > 0:
+                print(f"✅ Encontradas {len(messages)} mensagem(ns) na inbox")
+                
+                # Procurar mensagem mais recente (primeira da lista)
+                for msg in messages:
+                    # Tentar diferentes formatos de messageID
+                    msg_id = None
+                    if isinstance(msg, dict):
+                        msg_id = msg.get("messageID") or msg.get("message_id") or msg.get("id") or msg.get("_id")
+                        
+                        # Verificar se é mensagem de verificação (pode ter assunto ou remetente específico)
+                        subject = msg.get("subject", "").lower()
+                        from_addr = msg.get("from", "").lower()
+                        
+                        if msg_id:
+                            print(f"📨 Mensagem encontrada: ID={msg_id}, Subject={msg.get('subject', 'N/A')[:50]}")
+                            message_id = msg_id
+                            break
+                    elif isinstance(msg, str):
+                        # Se a mensagem é apenas um ID
+                        message_id = msg
+                        break
+                
+                if message_id:
+                    print(f"✅ Usando mensagem ID: {message_id}")
+                    break
+            else:
+                if attempt % 5 == 0:  # Mostrar a cada 5 tentativas
+                    print(f"⏳ Tentativa {attempt + 1}/{max_attempts}... (nenhuma mensagem ainda)")
+                else:
+                    print(f"   Tentativa {attempt + 1}/{max_attempts}...")
+            
+            time.sleep(3)
+            attempt += 1
+            
+        except json.JSONDecodeError as e:
+            print(f"⚠️  Erro ao decodificar JSON: {e}")
+            print(f"   Resposta: {data.decode('utf-8', errors='ignore')[:200]}")
+            time.sleep(3)
+            attempt += 1
+        except Exception as e:
+            print(f"⚠️  Erro na tentativa {attempt + 1}: {e}")
+            time.sleep(3)
+            attempt += 1
     
     if not message_id:
         raise Exception("Timeout: Não foi possível obter o código de verificação")
     
     # Fetch the message content
-    conn.request("GET", f"/messageid?id={message_id}", headers=headers)
-    res = conn.getresponse()
-    data = res.read()
+    print(f"📥 Buscando conteúdo da mensagem ID: {message_id}")
     
-    message_content = data.decode("utf-8")
-    
-    # Extract 6-digit code from message (look for 6 consecutive digits)
-    code_match = re.search(r'\b(\d{6})\b', message_content)
-    if code_match:
-        code = code_match.group(1)
-    else:
-        # Fallback: get first 6 digits
-        digits = re.findall(r'\d', message_content)
-        code = "".join(digits[:6])
-    
-    print("CÓDIGO:", code)
-    conn.close()
-    return code
+    try:
+        conn = http.client.HTTPSConnection(RAPIDAPI_HOST)
+        headers = {
+            'x-rapidapi-key': RAPIDAPI_KEY,
+            'x-rapidapi-host': RAPIDAPI_HOST,
+            'Content-Type': "application/json"
+        }
+        
+        # Tentar diferentes endpoints
+        endpoints = [
+            f"/messageid?id={message_id}",
+            f"/message?id={message_id}",
+            f"/get-message?id={message_id}",
+            f"/read-message?id={message_id}"
+        ]
+        
+        message_content = None
+        for endpoint in endpoints:
+            try:
+                conn.request("GET", endpoint, headers=headers)
+                res = conn.getresponse()
+                data = res.read()
+                
+                if res.status == 200:
+                    message_content = data.decode("utf-8")
+                    print(f"✅ Conteúdo obtido via {endpoint}")
+                    break
+            except Exception as e:
+                print(f"⚠️  Endpoint {endpoint} falhou: {e}")
+                continue
+        
+        conn.close()
+        
+        if not message_content:
+            raise Exception("Não foi possível obter o conteúdo da mensagem")
+        
+        # Debug: mostrar parte do conteúdo
+        print(f"📄 Conteúdo da mensagem (primeiros 200 chars): {message_content[:200]}")
+        
+        # Extrair código de 6 dígitos
+        # Tentar diferentes padrões
+        patterns = [
+            r'\b(\d{6})\b',  # 6 dígitos consecutivos
+            r'code[:\s]+(\d{6})',  # "code: 123456"
+            r'verification[:\s]+(\d{6})',  # "verification: 123456"
+            r'(\d{6})',  # Qualquer 6 dígitos
+        ]
+        
+        code = None
+        for pattern in patterns:
+            code_match = re.search(pattern, message_content, re.IGNORECASE)
+            if code_match:
+                code = code_match.group(1)
+                print(f"✅ Código encontrado com padrão: {pattern}")
+                break
+        
+        # Fallback: pegar primeiros 6 dígitos encontrados
+        if not code:
+            digits = re.findall(r'\d', message_content)
+            if len(digits) >= 6:
+                code = "".join(digits[:6])
+                print(f"✅ Código extraído (fallback): {code}")
+            else:
+                raise Exception(f"Não foi possível extrair código. Dígitos encontrados: {len(digits)}")
+        
+        if len(code) != 6:
+            raise Exception(f"Código inválido: {code} (esperado 6 dígitos)")
+        
+        print(f"✅ CÓDIGO DE VERIFICAÇÃO: {code}")
+        return code
+        
+    except Exception as e:
+        print(f"❌ Erro ao obter conteúdo da mensagem: {e}")
+        raise
 
 
 def obter_codigo_manual():
