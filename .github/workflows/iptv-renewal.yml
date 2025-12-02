@@ -35,28 +35,61 @@ jobs:
       run: mkdir -p data
     
     - name: Configure email from secrets
+      env:
+        SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+        SMTP_PORT: ${{ secrets.SMTP_PORT }}
+        SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+        SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
+        RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
+        EMAIL_CONFIG: ${{ secrets.EMAIL_CONFIG }}
       run: |
-        if [ -z "${{ secrets.EMAIL_CONFIG }}" ]; then
+        if [ -z "$EMAIL_CONFIG" ]; then
           echo "⚠️  EMAIL_CONFIG secret not found. Creating from individual secrets..."
-          python -c "
+          python << 'PYTHON_SCRIPT'
 import json
 import os
+import sys
+
 os.makedirs('data', exist_ok=True)
+
+# Get values from environment variables (safely handles special characters)
+smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
+smtp_port_str = os.environ.get('SMTP_PORT', '587')
+smtp_port = int(smtp_port_str) if smtp_port_str.isdigit() else 587
+email = os.environ.get('SENDER_EMAIL', '')
+password = os.environ.get('SENDER_PASSWORD', '')
+to_email = os.environ.get('RECEIVER_EMAIL', '')
+
+# Validate required fields
+if not email or not password or not to_email:
+    print("❌ Missing required email secrets: SENDER_EMAIL, SENDER_PASSWORD, RECEIVER_EMAIL")
+    sys.exit(1)
+
+# Create config in the format expected by EmailSender
+# File: data/email_config.json (not data/config.json)
+# Structure: flat (not nested)
+# Fields: email, password, to_email (not sender_email, sender_password, receiver_email)
 config = {
-    'email_config': {
-        'smtp_server': '${{ secrets.SMTP_SERVER }}',
-        'smtp_port': int('${{ secrets.SMTP_PORT }}' or '587'),
-        'sender_email': '${{ secrets.SENDER_EMAIL }}',
-        'sender_password': '${{ secrets.SENDER_PASSWORD }}',
-        'receiver_email': '${{ secrets.RECEIVER_EMAIL }}'
-    }
+    'smtp_server': smtp_server,
+    'smtp_port': smtp_port,
+    'email': email,
+    'password': password,
+    'to_email': to_email,
+    'use_tls': True
 }
-with open('data/config.json', 'w') as f:
-    json.dump(config, f, indent=2)
+
+config_file = 'data/email_config.json'
+with open(config_file, 'w', encoding='utf-8') as f:
+    json.dump(config, f, indent=4, ensure_ascii=False)
+
 print('✅ Email config created from secrets')
-"
+print(f'   File: {config_file}')
+print(f'   From: {email}')
+print(f'   To: {to_email}')
+PYTHON_SCRIPT
         else
-          echo "${{ secrets.EMAIL_CONFIG }}" > data/config.json
+          # EMAIL_CONFIG is a JSON string, write it directly
+          echo "$EMAIL_CONFIG" > data/email_config.json
           echo "✅ Email config created from EMAIL_CONFIG secret"
         fi
     
@@ -74,4 +107,3 @@ print('✅ Email config created from secrets')
         path: |
           data/*.log
           *.log
-
