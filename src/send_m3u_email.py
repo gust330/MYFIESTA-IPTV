@@ -9,7 +9,7 @@ from datetime import datetime
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 
-from src.auto_update import fetch_credentials_automated
+from src.fetch_credentials import fetch_credentials_automated
 from src.m3u_generator import M3UGenerator
 from src.email_sender import EmailSender
 

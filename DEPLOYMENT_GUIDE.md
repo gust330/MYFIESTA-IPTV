@@ -2,58 +2,45 @@
 
 Este guia explica como manter o sistema de renovação automática de IPTV funcionando mesmo com o computador desligado.
 
-## 📋 Opções Disponíveis
+## 🎯 Opção Recomendada: GitHub Actions (100% Gratuito)
 
-### 1. 🆓 Serviços na Nuvem Gratuitos (Recomendado)
+**GitHub Actions** é a melhor opção gratuita - totalmente gratuito, sem limites para repositórios públicos, e fácil de configurar.
 
-#### Opção A: Render.com (Recomendado)
-Render oferece plano gratuito que permite executar aplicações Python continuamente.
+### Configuração GitHub Actions
 
 **Passos:**
-1. Acesse [render.com](https://render.com) e crie uma conta (pode usar GitHub)
-2. Crie um novo "Background Worker"
-3. Conecte seu repositório GitHub
-4. Configure:
-   - **Build Command**: `pip install -r requirements.txt && playwright install chromium`
-   - **Start Command**: `python -m src.email_scheduler`
-5. Adicione variáveis de ambiente:
-   - `RAPIDAPI_KEY` - Sua chave da RapidAPI (configure manualmente no dashboard)
-6. Deploy!
+
+1. **Configure os Secrets no GitHub:**
+   - Vá em: Settings → Secrets and variables → Actions → New repository secret
+   - Adicione os seguintes secrets:
+     - `RAPIDAPI_KEY` - Sua chave da RapidAPI
+     - `SMTP_SERVER` - Servidor SMTP (ex: smtp.gmail.com)
+     - `SMTP_PORT` - Porta SMTP (ex: 587)
+     - `SENDER_EMAIL` - Seu email remetente
+     - `SENDER_PASSWORD` - Senha de app do email
+     - `RECEIVER_EMAIL` - Email destinatário
+
+2. **O workflow já está configurado!**
+   - O arquivo `.github/workflows/iptv-renewal.yml` já está criado
+   - Executa automaticamente a cada 48 horas
+   - Você também pode executar manualmente: Actions → IPTV Auto Renewal → Run workflow
+
+3. **Pronto!** O sistema executará automaticamente a cada 48 horas.
 
 **Vantagens:**
-- ✅ Gratuito (com limites)
-- ✅ Fácil de configurar
-- ✅ Roda 24/7 automaticamente
-- ✅ Não precisa manter PC ligado
-- ✅ Suporta Playwright out-of-the-box
-
-**Arquivo de configuração:**
-O projeto já inclui `render.yaml` com as configurações necessárias. Render detectará automaticamente este arquivo.
+- ✅ **100% Gratuito** - Sem limites para repositórios públicos
+- ✅ **Automático** - Executa a cada 48 horas via cron
+- ✅ **Sem manutenção** - Não precisa manter nada rodando
+- ✅ **Logs completos** - Veja todas as execuções no GitHub
+- ✅ **Execução manual** - Pode executar quando quiser
 
 ---
 
-#### Opção B: PythonAnywhere
-Similar ao Railway, também oferece plano gratuito.
+## 📋 Outras Opções Gratuitas
 
-**Passos:**
-1. Acesse [render.com](https://render.com) e crie uma conta
-2. Crie um novo "Background Worker"
-3. Conecte seu repositório
-4. Configure:
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `python -m src.email_scheduler`
-5. Adicione variáveis de ambiente (RAPIDAPI_KEY)
-6. Deploy!
+### Opção 2: PythonAnywhere (Tarefas Agendadas)
 
-**Vantagens:**
-- ✅ Gratuito
-- ✅ Roda 24/7
-- ✅ Interface simples
-
----
-
-#### Opção C: PythonAnywhere
-Especializado em Python, oferece plano gratuito.
+PythonAnywhere oferece plano gratuito com tarefas agendadas.
 
 **Passos:**
 1. Acesse [pythonanywhere.com](https://www.pythonanywhere.com)
@@ -69,9 +56,13 @@ Especializado em Python, oferece plano gratuito.
 - ✅ Especializado em Python
 - ✅ Interface web completa
 
+**Limitações:**
+- ⚠️ Tarefas agendadas têm limites no plano gratuito
+- ⚠️ Precisa fazer upload manual dos arquivos
+
 ---
 
-### 2. 💻 Windows Task Scheduler (PC Precisa Estar Ligado)
+### Opção 3: Windows Task Scheduler (PC Precisa Estar Ligado)
 
 Se você mantém o PC ligado 24/7, pode usar o Agendador de Tarefas do Windows.
 
@@ -106,83 +97,29 @@ Se você mantém o PC ligado 24/7, pode usar o Agendador de Tarefas do Windows.
    - ✅ Marque "Se a tarefa falhar, reiniciar a cada: 1 hora"
 
 **Script Auxiliar (opcional):**
-Crie um arquivo `run_scheduler.bat`:
-```batch
-@echo off
-cd /d "C:\Users\gustv\Documents\MYFIESTA-IPTV-main"
-python -m src.send_m3u_email
-```
-
----
-
-### 3. 🖥️ Servidor Dedicado / VPS
-
-Se você tem acesso a um servidor (VPS, Raspberry Pi, etc.), pode executar como serviço.
-
-#### Linux (systemd)
-
-Crie um arquivo `/etc/systemd/system/iptv-renewal.service`:
-
-```ini
-[Unit]
-Description=IPTV Auto Renewal Service
-After=network.target
-
-[Service]
-Type=simple
-User=seuusuario
-WorkingDirectory=/caminho/para/MYFIESTA-IPTV-main
-ExecStart=/usr/bin/python3 -m src.email_scheduler
-Restart=always
-RestartSec=60
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Ative o serviço:
-```bash
-sudo systemctl enable iptv-renewal.service
-sudo systemctl start iptv-renewal.service
-```
-
-#### Windows (NSSM - Non-Sucking Service Manager)
-
-1. Baixe [NSSM](https://nssm.cc/download)
-2. Instale como serviço:
-```cmd
-nssm install IPTVRenewal "C:\Python\python.exe" "-m src.email_scheduler"
-nssm set IPTVRenewal AppDirectory "C:\Users\gustv\Documents\MYFIESTA-IPTV-main"
-nssm start IPTVRenewal
+Execute como Administrador:
+```powershell
+.\scripts\setup_windows_task.ps1
 ```
 
 ---
 
 ## 🔧 Configuração Necessária
 
-Independente da opção escolhida, você precisa:
+### Para GitHub Actions
 
-### 1. Variáveis de Ambiente
+Configure os secrets no GitHub:
+1. Vá em: **Settings → Secrets and variables → Actions**
+2. Adicione os secrets necessários (veja lista acima)
 
-Configure a chave da RapidAPI:
-- **Windows**: Variáveis de Ambiente do Sistema
-- **Linux/Cloud**: Arquivo `.env` ou configuração do serviço
+### Para Outras Opções
 
-### 2. Configuração de Email
-
-Execute uma vez:
+Execute localmente para configurar o email:
 ```bash
 python scripts/setup_email.py
 ```
 
 Isso criará o arquivo `data/config.json` com suas configurações SMTP.
-
-### 3. Teste Antes de Deployar
-
-Teste localmente primeiro:
-```bash
-python -m src.send_m3u_email
-```
 
 ---
 
@@ -190,60 +127,61 @@ python -m src.send_m3u_email
 
 | Opção | Custo | Complexidade | Requer PC Ligado | Recomendado Para |
 |-------|-------|--------------|------------------|------------------|
-| Render.com | Gratuito | ⭐ Fácil | ❌ Não | Todos |
-| PythonAnywhere | Gratuito | ⭐⭐ Médio | ❌ Não | Todos |
+| **GitHub Actions** | **100% Gratuito** | ⭐ Fácil | ❌ Não | **Todos (Recomendado)** |
+| PythonAnywhere | Gratuito | ⭐⭐ Médio | ❌ Não | Quem prefere interface web |
 | Windows Task Scheduler | Gratuito | ⭐⭐ Médio | ✅ Sim | Quem mantém PC ligado |
-| VPS/Servidor | Pago | ⭐⭐⭐ Difícil | ❌ Não | Usuários avançados |
 
 ---
 
-## 🎯 Recomendação
+## 🎯 Recomendação Final
 
-**Para a maioria dos usuários**: Use **Render.com**
-- É gratuito
-- Fácil de configurar
-- Funciona 24/7 sem precisar manter PC ligado
-- Não requer conhecimento técnico avançado
-- Suporta Playwright nativamente
+**Para todos os usuários**: Use **GitHub Actions**
+- ✅ 100% gratuito
+- ✅ Fácil de configurar (apenas adicionar secrets)
+- ✅ Funciona 24/7 sem precisar manter PC ligado
+- ✅ Logs completos e execução manual disponível
+- ✅ Não requer conhecimento técnico avançado
 
 ---
 
 ## 🐛 Troubleshooting
 
-### O processo não está rodando
-- Verifique os logs do serviço
-- Confirme que as variáveis de ambiente estão configuradas
-- Teste localmente primeiro
+### GitHub Actions não executa
+
+- Verifique se os secrets estão configurados corretamente
+- Verifique os logs da execução em Actions → IPTV Auto Renewal
+- Confirme que o workflow está habilitado (Actions → Workflows)
 
 ### Email não está sendo enviado
-- Verifique `data/config.json`
-- Teste a configuração SMTP
-- Confirme que a senha de app (Gmail) está correta
+
+- Verifique se todos os secrets de email estão configurados
+- Teste localmente primeiro: `python -m src.send_m3u_email`
+- Verifique os logs do GitHub Actions
 
 ### Credenciais não estão sendo obtidas
-- Verifique se a chave da RapidAPI está válida
-- Confirme que o email gerado é @gmail.com
-- Verifique os logs para erros específicos
+
+- Verifique se `RAPIDAPI_KEY` está configurado corretamente
+- Confirme que o email gerado é @gmail.com (o sistema garante isso)
+- Verifique os logs do GitHub Actions para erros específicos
 
 ---
 
 ## 📝 Notas Importantes
 
-1. **Serviços Gratuitos**: Têm limites de uso. Se exceder, pode precisar fazer upgrade.
+1. **GitHub Actions**: Para repositórios públicos, é totalmente gratuito. Para privados, há limites generosos no plano gratuito.
 
-2. **Segurança**: Nunca commite arquivos com credenciais no Git. Use variáveis de ambiente.
+2. **Segurança**: Nunca commite arquivos com credenciais no Git. Use sempre secrets/variáveis de ambiente.
 
-3. **Backup**: Mantenha backup do arquivo `data/config.json` em local seguro.
+3. **Backup**: Mantenha backup das configurações de email em local seguro.
 
-4. **Monitoramento**: Configure notificações (se disponível) para saber quando o processo executa.
+4. **Monitoramento**: Configure notificações do GitHub para saber quando o workflow executa.
 
 ---
 
 ## 🆘 Suporte
 
 Se tiver problemas:
-1. Verifique os logs do serviço
-2. Teste localmente primeiro
+1. Verifique os logs do GitHub Actions
+2. Teste localmente primeiro: `python -m src.send_m3u_email`
 3. Confirme todas as configurações
-4. Verifique a documentação do serviço escolhido
-
+4. Verifique a documentação do GitHub Actions

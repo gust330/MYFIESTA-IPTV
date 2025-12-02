@@ -1,0 +1,77 @@
+name: IPTV Auto Renewal
+
+on:
+  schedule:
+    # Executa a cada 2 dias (48 horas) às 00:00 UTC
+    # Formato: minuto hora dia mês dia-da-semana
+    - cron: '0 0 */2 * *'
+  workflow_dispatch:  # Permite execução manual
+
+jobs:
+  renew-credentials:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2
+    
+    - name: Install Python dependencies
+      run: |
+        pip install -r requirements.txt
+        playwright install chromium
+        playwright install-deps chromium
+    
+    - name: Create data directory
+      run: mkdir -p data
+    
+    - name: Configure email from secrets
+      run: |
+        if [ -z "${{ secrets.EMAIL_CONFIG }}" ]; then
+          echo "⚠️  EMAIL_CONFIG secret not found. Creating from individual secrets..."
+          python -c "
+import json
+import os
+os.makedirs('data', exist_ok=True)
+config = {
+    'email_config': {
+        'smtp_server': '${{ secrets.SMTP_SERVER }}',
+        'smtp_port': int('${{ secrets.SMTP_PORT }}' or '587'),
+        'sender_email': '${{ secrets.SENDER_EMAIL }}',
+        'sender_password': '${{ secrets.SENDER_PASSWORD }}',
+        'receiver_email': '${{ secrets.RECEIVER_EMAIL }}'
+    }
+}
+with open('data/config.json', 'w') as f:
+    json.dump(config, f, indent=2)
+print('✅ Email config created from secrets')
+"
+        else
+          echo "${{ secrets.EMAIL_CONFIG }}" > data/config.json
+          echo "✅ Email config created from EMAIL_CONFIG secret"
+        fi
+    
+    - name: Run IPTV renewal
+      env:
+        RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+      run: |
+        python -m src.send_m3u_email
+    
+    - name: Upload logs on failure
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: error-logs
+        path: |
+          data/*.log
+          *.log
+

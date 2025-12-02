@@ -197,22 +197,33 @@ O arquivo `data/config.json` é criado automaticamente ao executar `setup_email.
 - O email é enviado **antes** das credenciais expirarem
 - O sistema garante que emails gerados sejam sempre @gmail.com
 
-## 🚀 Deployment na Nuvem
+## 🚀 Deployment na Nuvem (100% Gratuito)
 
 Para manter o sistema rodando 24/7 sem precisar manter o computador ligado, consulte o **[Guia de Deployment](DEPLOYMENT_GUIDE.md)**.
 
-### Quick Start - Render.com
+### Quick Start - GitHub Actions (Recomendado)
 
-1. Acesse [render.com](https://render.com) e crie uma conta
-2. Crie um novo "Background Worker"
-3. Conecte seu repositório GitHub
-4. Configure a variável de ambiente `RAPIDAPI_KEY` no dashboard
-5. Deploy! (Render detectará automaticamente o `render.yaml`)
+**GitHub Actions é 100% gratuito e a melhor opção!**
 
-**Ou use o script de setup:**
-```bash
-bash scripts/setup_render.sh
-```
+1. **Configure os Secrets no GitHub:**
+   - Vá em: **Settings → Secrets and variables → Actions → New repository secret**
+   - Adicione:
+     - `RAPIDAPI_KEY` - Sua chave da RapidAPI
+     - `SMTP_SERVER` - Servidor SMTP (ex: smtp.gmail.com)
+     - `SMTP_PORT` - Porta SMTP (ex: 587)
+     - `SENDER_EMAIL` - Seu email remetente
+     - `SENDER_PASSWORD` - Senha de app do email
+     - `RECEIVER_EMAIL` - Email destinatário
+
+2. **Pronto!** O workflow já está configurado em `.github/workflows/iptv-renewal.yml`
+   - Executa automaticamente a cada 48 horas
+   - Você também pode executar manualmente: **Actions → IPTV Auto Renewal → Run workflow**
+
+**Vantagens:**
+- ✅ 100% Gratuito
+- ✅ Automático (cron a cada 48h)
+- ✅ Logs completos
+- ✅ Execução manual disponível
 
 ## 📄 Licença
 
