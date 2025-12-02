@@ -60,3 +60,9 @@ test_*.py
 *.tmp
 *.bak
 *.swp
+
+# Railway (não usado mais)
+Procfile
+railway.json
+runtime.txt
+.railwayignore

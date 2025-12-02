@@ -8,3 +8,6 @@ env/
 .git/
 screenshot_*.png
 *.log
+data/credentials.json
+data/config.json
+

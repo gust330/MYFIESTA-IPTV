@@ -14,7 +14,7 @@ services:
   - type: worker
     name: iptv-renewal-worker
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && playwright install chromium
     startCommand: python -m src.email_scheduler
     envVars:
       - key: RAPIDAPI_KEY

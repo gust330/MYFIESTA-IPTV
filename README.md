@@ -97,8 +97,8 @@ O scheduler vai:
 Para manter o sistema rodando 24/7 mesmo com o computador desligado, consulte o **[Guia de Deployment](DEPLOYMENT_GUIDE.md)**.
 
 **Opções recomendadas:**
-- 🆓 **Railway.app** - Gratuito, fácil de configurar
-- 🆓 **Render.com** - Gratuito, similar ao Railway
+- 🆓 **Render.com** - Gratuito, fácil de configurar (recomendado)
+- 🆓 **PythonAnywhere** - Gratuito, especializado em Python
 - 💻 **Windows Task Scheduler** - Se mantiver PC ligado
 
 ## 📧 Como Usar o Link M3U no VLC
@@ -201,13 +201,18 @@ O arquivo `data/config.json` é criado automaticamente ao executar `setup_email.
 
 Para manter o sistema rodando 24/7 sem precisar manter o computador ligado, consulte o **[Guia de Deployment](DEPLOYMENT_GUIDE.md)**.
 
-### Quick Start - Railway.app
+### Quick Start - Render.com
 
-1. Execute: `python scripts/setup_railway.py`
-2. Acesse [railway.app](https://railway.app)
+1. Acesse [render.com](https://render.com) e crie uma conta
+2. Crie um novo "Background Worker"
 3. Conecte seu repositório GitHub
-4. Configure a variável `RAPIDAPI_KEY`
-5. Deploy!
+4. Configure a variável de ambiente `RAPIDAPI_KEY` no dashboard
+5. Deploy! (Render detectará automaticamente o `render.yaml`)
+
+**Ou use o script de setup:**
+```bash
+bash scripts/setup_render.sh
+```
 
 ## 📄 Licença
 

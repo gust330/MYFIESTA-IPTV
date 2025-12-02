@@ -6,30 +6,33 @@ Este guia explica como manter o sistema de renovação automática de IPTV funci
 
 ### 1. 🆓 Serviços na Nuvem Gratuitos (Recomendado)
 
-#### Opção A: Railway.app (Mais Fácil)
-Railway oferece plano gratuito que permite executar aplicações Python continuamente.
+#### Opção A: Render.com (Recomendado)
+Render oferece plano gratuito que permite executar aplicações Python continuamente.
 
 **Passos:**
-1. Acesse [railway.app](https://railway.app) e crie uma conta (pode usar GitHub)
-2. Crie um novo projeto
-3. Conecte seu repositório GitHub ou faça upload dos arquivos
-4. Configure as variáveis de ambiente:
-   - `RAPIDAPI_KEY` - Sua chave da RapidAPI
-5. Configure o comando de start:
-   ```
-   python -m src.email_scheduler
-   ```
-6. Railway manterá o processo rodando 24/7
+1. Acesse [render.com](https://render.com) e crie uma conta (pode usar GitHub)
+2. Crie um novo "Background Worker"
+3. Conecte seu repositório GitHub
+4. Configure:
+   - **Build Command**: `pip install -r requirements.txt && playwright install chromium`
+   - **Start Command**: `python -m src.email_scheduler`
+5. Adicione variáveis de ambiente:
+   - `RAPIDAPI_KEY` - Sua chave da RapidAPI (configure manualmente no dashboard)
+6. Deploy!
 
 **Vantagens:**
 - ✅ Gratuito (com limites)
 - ✅ Fácil de configurar
 - ✅ Roda 24/7 automaticamente
 - ✅ Não precisa manter PC ligado
+- ✅ Suporta Playwright out-of-the-box
+
+**Arquivo de configuração:**
+O projeto já inclui `render.yaml` com as configurações necessárias. Render detectará automaticamente este arquivo.
 
 ---
 
-#### Opção B: Render.com
+#### Opção B: PythonAnywhere
 Similar ao Railway, também oferece plano gratuito.
 
 **Passos:**
@@ -187,7 +190,6 @@ python -m src.send_m3u_email
 
 | Opção | Custo | Complexidade | Requer PC Ligado | Recomendado Para |
 |-------|-------|--------------|------------------|------------------|
-| Railway.app | Gratuito | ⭐ Fácil | ❌ Não | Todos |
 | Render.com | Gratuito | ⭐ Fácil | ❌ Não | Todos |
 | PythonAnywhere | Gratuito | ⭐⭐ Médio | ❌ Não | Todos |
 | Windows Task Scheduler | Gratuito | ⭐⭐ Médio | ✅ Sim | Quem mantém PC ligado |
@@ -197,11 +199,12 @@ python -m src.send_m3u_email
 
 ## 🎯 Recomendação
 
-**Para a maioria dos usuários**: Use **Railway.app** ou **Render.com**
-- São gratuitos
-- Fáceis de configurar
-- Funcionam 24/7 sem precisar manter PC ligado
+**Para a maioria dos usuários**: Use **Render.com**
+- É gratuito
+- Fácil de configurar
+- Funciona 24/7 sem precisar manter PC ligado
 - Não requer conhecimento técnico avançado
+- Suporta Playwright nativamente
 
 ---
 
