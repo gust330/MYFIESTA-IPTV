@@ -1,12 +1,11 @@
 name: IPTV Auto Renewal
 
 on:
+  workflow_dispatch:  # Permite execução manual
   schedule:
     # Executa a cada 2 dias (48 horas) às 00:00 UTC
     # Formato: minuto hora dia mês dia-da-semana
     - cron: '0 0 */2 * *'
-  workflow_dispatch:  # Permite execução manual
-    inputs: {}
 
 jobs:
   renew-credentials:
