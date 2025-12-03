@@ -32,8 +32,16 @@ jobs:
       run: |
         pip install -r requirements.txt
         playwright install chromium
-        # Install dependencies, but don't fail if some are missing
-        playwright install-deps chromium || echo "⚠️  Some browser dependencies failed to install, but continuing..."
+        # Install dependencies, but don't fail if some are missing (libasound2 issue in Ubuntu 24.04+)
+        set +e
+        playwright install-deps chromium
+        deps_exit_code=$?
+        set -e
+        if [ $deps_exit_code -ne 0 ]; then
+          echo "⚠️  Some browser dependencies failed to install (exit code: $deps_exit_code)"
+          echo "⚠️  This is likely due to libasound2 not being available in Ubuntu 24.04+"
+          echo "⚠️  Continuing anyway - Playwright should work without it in headless mode"
+        fi
     
     - name: Create data directory
       run: mkdir -p data
