@@ -24,13 +24,16 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
+        # Try to install libasound2t64 (Ubuntu 24.04+) or libasound2 (older versions)
         sudo apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 || true
+        sudo apt-get install -y libasound2t64 2>/dev/null || sudo apt-get install -y libasound2 2>/dev/null || echo "⚠️  libasound2 not available, continuing without it (not required for headless)"
     
     - name: Install Python dependencies
       run: |
         pip install -r requirements.txt
         playwright install chromium
-        playwright install-deps chromium
+        # Install dependencies, but don't fail if some are missing
+        playwright install-deps chromium || echo "⚠️  Some browser dependencies failed to install, but continuing..."
     
     - name: Create data directory
       run: mkdir -p data
