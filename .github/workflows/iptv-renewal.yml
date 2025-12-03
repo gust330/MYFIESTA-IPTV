@@ -2,6 +2,7 @@ name: IPTV Auto Renewal
 
 on:
   workflow_dispatch:  # Permite execução manual
+    inputs: {}
   schedule:
     # Executa a cada 2 dias (48 horas) às 00:00 UTC
     # Formato: minuto hora dia mês dia-da-semana
@@ -93,10 +94,36 @@ PYTHON_SCRIPT
           echo "✅ Email config created from EMAIL_CONFIG secret"
         fi
     
+    - name: Validate secrets
+      run: |
+        echo "🔍 Validando secrets..."
+        if [ -z "${{ secrets.RAPIDAPI_KEY }}" ]; then
+          echo "❌ RAPIDAPI_KEY secret não encontrado!"
+          exit 1
+        fi
+        if [ -z "${{ secrets.SENDER_EMAIL }}" ] && [ -z "${{ secrets.EMAIL_CONFIG }}" ]; then
+          echo "❌ Secrets de email não encontrados!"
+          exit 1
+        fi
+        echo "✅ Todos os secrets necessários estão configurados"
+    
     - name: Run IPTV renewal
       env:
         RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
       run: |
+        echo "🔍 Verificando configuração..."
+        if [ -z "$RAPIDAPI_KEY" ]; then
+          echo "❌ RAPIDAPI_KEY não está definida!"
+          exit 1
+        fi
+        echo "   RAPIDAPI_KEY: ${RAPIDAPI_KEY:0:20}..." 
+        echo "   Email config exists: $(test -f data/email_config.json && echo 'Yes' || echo 'No')"
+        if [ ! -f data/email_config.json ]; then
+          echo "❌ Arquivo de configuração de email não encontrado!"
+          exit 1
+        fi
+        echo ""
+        echo "🚀 Iniciando renovação de credenciais..."
         python -m src.send_m3u_email
     
     - name: Upload logs on failure

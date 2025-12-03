@@ -21,8 +21,13 @@ MANUAL_MODE = False  # Set to True to manually enter email, False to use API (fo
 
 
 # API Configuration
-RAPIDAPI_KEY = "f179a4e9dfmsh4031a8907ab8e64p172111jsnc505667cefae"
+# Read from environment variable or use default (for local testing)
+RAPIDAPI_KEY = os.environ.get("RAPIDAPI_KEY", "f179a4e9dfmsh4031a8907ab8e64p172111jsnc505667cefae")
 RAPIDAPI_HOST = "gmailnator.p.rapidapi.com"
+
+# Validate RAPIDAPI_KEY
+if not RAPIDAPI_KEY or RAPIDAPI_KEY == "":
+    raise ValueError("RAPIDAPI_KEY environment variable is required for automation")
 
 
 def delete_old_credentials():
