@@ -1,246 +1,161 @@
-# 📧 MYFIESTA IPTV - Sistema Automático de Renovação
+# MYFIESTA IPTV — Automated Credential & M3U Renewal Service 📺
 
-Sistema automatizado que busca credenciais IPTV a cada 48 horas e envia o link M3U por email, pronto para usar no VLC Player.
+> **Automated headless pipeline that rotates IPTV trial credentials every 48 hours, formats live M3U playlist endpoints, and delivers fresh streaming links to your inbox for seamless playback in VLC Media Player.**
 
-## 🎯 Funcionalidades
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg?logo=python&logoColor=white)](#requirements)
+[![Automation](https://img.shields.io/badge/Automation-Playwright%20Headless-45ba4b.svg?logo=playwright&logoColor=white)](#architecture)
+[![Scheduler](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions%20(48h%20Cron)-orange.svg?logo=githubactions&logoColor=white)](#automated-github-actions-deployment)
+[![Delivery](https://img.shields.io/badge/Delivery-SMTP%20Email-informational.svg)](#email-configuration)
+[![Playback](https://img.shields.io/badge/Player-VLC%20Media%20Player-FF8800.svg?logo=vlc-media-player&logoColor=white)](#playing-in-vlc)
+[![License](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 
-- ✅ **Busca Automática de Credenciais** - Obtém novas credenciais IPTV automaticamente via Playwright
-- ✅ **Geração de Link M3U** - Cria link M3U compatível com VLC Player
-- ✅ **Envio Automático por Email** - Envia email a cada 48 horas com o novo link
-- ✅ **Scheduler Automático** - Executa automaticamente sem intervenção manual
-- ✅ **Deployment na Nuvem** - Suporta Railway, Render e outros serviços
+---
 
-## 📋 Pré-requisitos
+## Overview
 
-1. **Python 3.8+**
-2. **Conta de email** (Gmail, Outlook, etc.) para envio
-3. **Chave RapidAPI** para geração de emails temporários
-4. **Dependências**: `pip install -r requirements.txt`
+IPTV trial playlists typically expire within 48 hours, requiring manual account re-registration, disposable email handling, credential extraction, and playlist URL reconstruction.
 
-## 🚀 Instalação Rápida
+**MYFIESTA IPTV** completely automates this maintenance loop. Operating headlessly via Playwright and temporary disposable inbox APIs, it generates credentials on schedule, builds the valid M3U stream URL, and dispatches an automated notification email directly to the user.
 
-### 1. Clone o repositório
-
-```bash
-git clone <seu-repositorio>
-cd MYFIESTA-IPTV-main
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        MYFIESTA IPTV AUTOMATION LOOP                   │
+├────────────────────────────────┬───────────────────────────────────────┤
+│  [📬] Disposable Email API     │  [🎭] Headless Playwright Engine      │
+│  · RapidAPI / Gmailnator       │  · Headless Chromium browser          │
+│  · Temporary @gmail mailbox    │  · Automates portal trial forms       │
+│  · Instant verification grab   │  · Captures host, user & pass tokens  │
+├────────────────────────────────┴───────────────────────────────────────┤
+│                     [⚡] M3U Playlist Generator                         │
+│  Constructs: http://{host}:{port}/get.php?username={u}&password={p}&...│
+├────────────────────────────────┬───────────────────────────────────────┤
+│  [📧] SMTP Email Dispatcher    │  [🎬] Direct Playback (VLC)           │
+│  · Secure TLS transport        │  · One-click network stream import    │
+│  · Formatted HTML mailer       │  · Zero manual credential renewal     │
+└────────────────────────────────┴───────────────────────────────────────┘
 ```
 
-### 2. Instale as dependências
+---
+
+## Key Features
+
+- **Autonomous Web Automation**: Employs Playwright (`src/playwright_script.py`) to bypass manual form filling and account creation flows.
+- **Dynamic M3U Link Builder**: Formats authenticated HLS/MPEG-TS playlist links compatible with VLC, Kodi, or IPTV smart TV players.
+- **Automated Scheduling**: Runs locally as a continuous background daemon (`src/email_scheduler.py`) or serverlessly on a 48-hour GitHub Actions schedule.
+- **Multi-Provider SMTP Support**: Pre-configured for Gmail (App Passwords) and Microsoft Outlook.
+
+---
+
+## Playing in VLC Media Player
+
+Once you receive your renewal email with the active M3U link:
+
+1. Launch **VLC Media Player**.
+2. Press `Ctrl + N` (or navigate to **Media → Open Network Stream...**).
+3. Paste the M3U link received in your inbox.
+4. Click **Play** (`Enter`).
+5. *Tip:* Press `Ctrl + L` to view the full channel playlist and filter by category.
+
+---
+
+## Installation & Setup
+
+### Requirements
+
+- **Python 3.8+** (Python 3.10+ recommended)
+- **Playwright** with Chromium binaries
+- A **RapidAPI Key** for disposable inbox verification ([Gmailnator API](https://rapidapi.com/johndevz/api/gmailnator))
+- An **SMTP Email Account** (e.g., Gmail with App Password)
+
+### 1. Local Setup
 
 ```bash
+# Clone the repository
+git clone https://github.com/gust330/MYFIESTA-IPTV.git
+cd MYFIESTA-IPTV
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Install Playwright browser binaries
 playwright install chromium
 ```
 
-### 3. Configure a chave RapidAPI
+### 2. Configuration
 
-Edite `src/playwright_script.py` e adicione sua chave:
-
-```python
-RAPIDAPI_KEY = "sua-chave-aqui"
-```
-
-Obtenha uma chave gratuita em: https://rapidapi.com/johndevz/api/gmailnator
-
-### 4. Configure o email
-
-Execute o script de configuração:
+Run the interactive setup helper:
 
 ```bash
 python scripts/setup_email.py
 ```
 
-**Para Gmail:**
-- Use uma **Senha de App** (não a senha normal)
-- Obtenha em: https://myaccount.google.com/apppasswords
-- Servidor: `smtp.gmail.com`
-- Porta: `587` (TLS)
-
-**Para Outlook:**
-- Pode usar senha normal ou senha de app
-- Servidor: `smtp-mail.outlook.com`
-- Porta: `587` (TLS)
-
-## 🎮 Uso
-
-### Teste Manual
-
-Execute uma vez para testar:
-
-```bash
-python -m src.send_m3u_email
-```
-
-Este comando vai:
-1. Buscar novas credenciais automaticamente
-2. Gerar o link M3U
-3. Enviar email com o link
-
-### Execução Automática (48 em 48 horas)
-
-#### Opção 1: Scheduler Python (Local)
-
-```bash
-python -m src.email_scheduler
-```
-
-O scheduler vai:
-- Executar imediatamente na primeira vez
-- Executar novamente a cada 48 horas
-- Manter-se rodando em background
-
-**⚠️ Mantenha o terminal aberto!**
-
-#### Opção 2: Deployment na Nuvem (Recomendado)
-
-Para manter o sistema rodando 24/7 mesmo com o computador desligado, consulte o **[Guia de Deployment](DEPLOYMENT_GUIDE.md)**.
-
-**Opções recomendadas:**
-- 🆓 **Render.com** - Gratuito, fácil de configurar (recomendado)
-- 🆓 **PythonAnywhere** - Gratuito, especializado em Python
-- 💻 **Windows Task Scheduler** - Se mantiver PC ligado
-
-## 📧 Como Usar o Link M3U no VLC
-
-1. Abra o **VLC Media Player**
-2. Vá em: **Mídia > Abrir Localização de Rede** (ou `Ctrl+N`)
-3. Cole o link M3U do email
-4. Clique em **Reproduzir**
-
-**Dica:** Salve o link como favorito no VLC para acesso rápido!
-
-## 📁 Estrutura do Projeto
-
-```
-MYFIESTA-IPTV-main/
-├── src/
-│   ├── playwright_script.py    # Busca credenciais via Playwright
-│   ├── send_m3u_email.py       # Script principal (busca + gera + envia)
-│   ├── email_sender.py         # Envio de emails via SMTP
-│   ├── m3u_generator.py        # Geração de URL M3U
-│   └── email_scheduler.py       # Scheduler automático
-├── scripts/
-│   ├── setup_email.py          # Configuração interativa de email
-│   ├── setup_railway.py        # Setup para Railway.app
-│   ├── setup_render.sh         # Setup para Render.com
-│   └── setup_windows_task.ps1  # Setup Windows Task Scheduler
-├── data/                       # Dados (auto-criado)
-│   ├── config.json             # Configuração de email
-│   └── credentials.json        # Credenciais IPTV
-├── requirements.txt            # Dependências Python
-├── DEPLOYMENT_GUIDE.md         # Guia completo de deployment
-└── README.md                   # Este arquivo
-```
-
-## 🔧 Configuração Avançada
-
-### Variáveis de Ambiente
-
-Para deployment na nuvem, configure:
-
-- `RAPIDAPI_KEY` - Sua chave da RapidAPI
-
-### Arquivo de Configuração
-
-O arquivo `data/config.json` é criado automaticamente ao executar `setup_email.py`:
+This writes your credentials to `data/config.json`:
 
 ```json
 {
   "email_config": {
     "smtp_server": "smtp.gmail.com",
     "smtp_port": 587,
-    "sender_email": "seu-email@gmail.com",
-    "sender_password": "sua-senha-de-app",
-    "receiver_email": "destinatario@gmail.com"
+    "sender_email": "your-email@gmail.com",
+    "sender_password": "your-app-password",
+    "receiver_email": "destination@gmail.com"
   }
 }
 ```
 
-## 🛠️ Solução de Problemas
+Configure your RapidAPI key in `src/playwright_script.py` or via environment variable `RAPIDAPI_KEY`.
 
-### Erro de Autenticação de Email
+### 3. Execution
 
-**Gmail:**
-- Use **Senha de App** em vez da senha normal
-- Ative verificação em 2 etapas primeiro
-- Obter senha de app: https://myaccount.google.com/apppasswords
+```bash
+# Run a one-time test cycle (fetch credentials -> generate M3U -> send email)
+python -m src.send_m3u_email
 
-**Outlook:**
-- Verifique se a senha está correta
-- Pode precisar ativar "Aplicativos menos seguros"
-
-### Email não chega
-
-- Verifique a pasta de **Spam**
-- Confirme que o email destinatário está correto
-- Teste enviando manualmente primeiro: `python -m src.send_m3u_email`
-
-### Credenciais não são obtidas
-
-- Verifique se a chave da RapidAPI está válida
-- Confirme que o email gerado é @gmail.com (o sistema garante isso automaticamente)
-- Verifique os logs para erros específicos
-
-### Scheduler não funciona
-
-- Verifique se o Python está no PATH
-- Use caminho absoluto no agendador do Windows
-- Mantenha o terminal aberto se usar scheduler Python
-- Para 24/7, use deployment na nuvem (Railway/Render)
-
-## 📝 Notas Importantes
-
-- O sistema busca **novas credenciais** automaticamente a cada execução
-- O link M3U é gerado dinamicamente a partir das credenciais atuais
-- As credenciais são válidas por ~48 horas (trial)
-- O email é enviado **antes** das credenciais expirarem
-- O sistema garante que emails gerados sejam sempre @gmail.com
-
-## 🚀 Deployment na Nuvem (100% Gratuito)
-
-Para manter o sistema rodando 24/7 sem precisar manter o computador ligado, consulte o **[Guia de Deployment](DEPLOYMENT_GUIDE.md)**.
-
-### Quick Start - GitHub Actions (Recomendado)
-
-**GitHub Actions é 100% gratuito e a melhor opção!**
-
-1. **Configure os Secrets no GitHub:**
-   - Vá em: **Settings → Secrets and variables → Actions → New repository secret**
-   - Adicione:
-     - `RAPIDAPI_KEY` - Sua chave da RapidAPI
-     - `SMTP_SERVER` - Servidor SMTP (ex: smtp.gmail.com)
-     - `SMTP_PORT` - Porta SMTP (ex: 587)
-     - `SENDER_EMAIL` - Seu email remetente
-     - `SENDER_PASSWORD` - Senha de app do email
-     - `RECEIVER_EMAIL` - Email destinatário
-
-2. **Pronto!** O workflow já está configurado em `.github/workflows/iptv-renewal.yml`
-   - Executa automaticamente a cada 48 horas
-   - Você também pode executar manualmente: **Actions → IPTV Auto Renewal → Run workflow**
-
-**Vantagens:**
-- ✅ 100% Gratuito
-- ✅ Automático (cron a cada 48h)
-- ✅ Logs completos
-- ✅ Execução manual disponível
-
-## 📄 Licença
-
-Este projeto é fornecido "como está" para fins educacionais.
-
-## 🤝 Contribuindo
-
-Contribuições são bem-vindas! Sinta-se à vontade para abrir issues ou pull requests.
-
-## 📞 Suporte
-
-Se tiver problemas:
-1. Verifique os logs do sistema
-2. Consulte o [Guia de Deployment](DEPLOYMENT_GUIDE.md)
-3. Teste localmente primeiro
-4. Verifique todas as configurações
+# Or run the local 48-hour scheduler daemon
+python -m src.email_scheduler
+```
 
 ---
 
-**Desenvolvido para automatizar a renovação de credenciais IPTV e facilitar o acesso via VLC Player.**
+## Automated GitHub Actions Deployment (Recommended)
+
+To run the renewal service 24/7 in the cloud with zero hosting costs:
+
+1. Push the repository to GitHub.
+2. In **Settings → Secrets and variables → Actions**, add:
+   - `RAPIDAPI_KEY`
+   - `SMTP_SERVER` (*e.g., `smtp.gmail.com`*)
+   - `SMTP_PORT` (*e.g., `587`*)
+   - `SENDER_EMAIL`
+   - `SENDER_PASSWORD`
+   - `RECEIVER_EMAIL`
+3. The included workflow (`.github/workflows/iptv-renewal.yml`) will run automatically every 48 hours and can also be triggered manually under **Actions → IPTV Auto Renewal → Run workflow**.
+
+---
+
+## Project Structure
+
+```
+MYFIESTA-IPTV/
+├── src/
+│   ├── send_m3u_email.py       # Orchestration script (fetch + format + dispatch)
+│   ├── playwright_script.py    # Headless credential automation
+│   ├── m3u_generator.py        # M3U stream URL formatting
+│   ├── email_sender.py         # SMTP email delivery client
+│   └── email_scheduler.py      # Local recurring 48-hour timer
+├── scripts/
+│   ├── setup_email.py          # Interactive CLI configuration wizard
+│   ├── setup_render.sh         # Render.com deployment script
+│   └── setup_windows_task.ps1  # Windows Task Scheduler automation
+├── data/                       # Local JSON cache & credentials (git-ignored)
+├── DEPLOYMENT_GUIDE.md         # Detailed cloud hosting walk-through
+├── requirements.txt            # Python dependencies
+└── README.md
+```
+
+---
+
+## Author & Disclaimer
+
+Engineered by **Gustavo Teixeira** ([@gust330](https://github.com/gust330)).  
+This project is provided for educational and automation demonstration purposes.
